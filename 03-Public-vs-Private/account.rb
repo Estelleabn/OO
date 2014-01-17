@@ -1,4 +1,6 @@
 # This is how you define your own custom exception classes
+require_relative 'transaction'
+
 class DepositError < StandardError
 end
 
@@ -11,6 +13,7 @@ class BankAccount
   # - you can print transactions only with a password
   # - you can withdraw or deposit money
   
+  attr_accessor :name, :position, :transactions
   MIN_DEPOSIT =  100
   
   def initialize(name, iban, initial_deposit, password)
@@ -24,29 +27,36 @@ class BankAccount
   end
     
   def withdraw(amount)
+    add_transaction(-amount)
   end
   
   def deposit(amount)
+    add_transaction(amount)
   end
   
   def transactions_history(args = {})
-    # Should print transactions, BUT NOT return the transaction array !
+    if args[:password] == @password
+      @transactions.each {|transaction| puts transaction}
+    elsif args.empty?
+      puts "No password"
+    else
+      puts "Wrong password"
+    end
   end
   
   def iban
-    # Partial getter (should hide the middle of the IBAN like FR14**************606)
+    @iban = @iban.gsub(/\D((\d{4})(\D))+(\w+)\D/, "**************")
   end
   
   def to_s
-    # Method used when printing account object as string (also used for string interpolation)
+    "************ \n Owner: #{@name} \n IBAN: #{@iban} \n Position: #{position} \n ************"
   end
           
   private  
   
   def add_transaction(amount)
-    # Main account logic
-    # Should add the amount in the transactions array
-    # Should update the current position
+    @position += amount
+    @transactions << Transaction.new(amount, Time.now)
   end
     
 end
@@ -81,4 +91,8 @@ account.transactions_history() # => no password given
 puts account.position == 435 # => true
 
 # Un-comment the following to test custom exception
-# too_small_deposit = BankAccount.new("Poor Billy", "FR14-2004-1010-0505-0001-3M02-606", 50, "toopoor")
+begin
+too_small_deposit = BankAccount.new("Poor Billy", "FR14-2004-1010-0505-0001-3M02-606", 50, "toopoor")
+rescue DepositError => e
+  puts e.message
+end
